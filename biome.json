@@ -6,6 +6,10 @@
 			"packages/*/tsup.config.ts",
 			"packages/*/package.json",
 			"packages/*/tsconfig.json",
+			"examples/*/src/**",
+			"examples/*/package.json",
+			"examples/*/tsconfig.json",
+			"examples/*/*.ts",
 			"*.json"
 		]
 	},
