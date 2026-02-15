@@ -4,13 +4,13 @@ import { serve } from "@hono/node-server";
 const config = createClaudeConfig({
 	model: "claude-sonnet-4-5-20250929",
 	systemPrompt:
-		"You are a helpful assistant. When the user asks you to roll dice, use the roll tool.",
+		"You are a helpful assistant. You can perform glob, grep searches, read files and perform web searches and web fetches of specific websites.",
 	mcpServers: {},
 	tools: [
 		// "Bash",
 		// "Edit",
-		// "Glob",
-		// "Grep",
+		"Glob",
+		"Grep",
 		// "NotebookEdit",
 		"Read",
 		// "TodoWrite",
