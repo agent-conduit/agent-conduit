@@ -18,3 +18,12 @@ export {
 	type UserQuestionAnsweredEvent,
 	type UserQuestionEvent,
 } from "./protocol";
+export {
+	type AgentMessage,
+	type AgentState,
+	initialState,
+	type PendingPermission,
+	type PendingQuestion,
+	reduceEvent,
+	type ToolCallInfo,
+} from "./state";
