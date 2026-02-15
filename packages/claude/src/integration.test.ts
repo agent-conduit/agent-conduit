@@ -14,7 +14,7 @@ import type { SessionConfig } from "./session";
 
 function makeConfig(messages: Record<string, unknown>[]): SessionConfig {
 	return {
-		queryFn: () => {
+		queryFn: (_opts) => {
 			const gen = (async function* () {
 				for (const msg of messages) {
 					yield msg;
@@ -196,7 +196,7 @@ describe("integration: full protocol pipeline", () => {
 	it("multi-turn messaging produces events from both turns", async () => {
 		let turnCount = 0;
 		const config: SessionConfig = {
-			queryFn: ({ prompt }) => {
+			queryFn: ({ prompt, permissionHandler: _ph }) => {
 				const gen = (async function* () {
 					yield { type: "system", subtype: "init", session_id: "int-3" };
 					yield {
@@ -264,6 +264,106 @@ describe("integration: full protocol pipeline", () => {
 		expect(messages[1]?.content).toEqual([
 			{ type: "text", text: "Second response" },
 		]);
+	});
+
+	it("permission round-trip: SSE pauses, POST respond unblocks, stream continues", async () => {
+		const config: SessionConfig = {
+			queryFn: ({ permissionHandler }) => {
+				const gen = (async function* () {
+					yield { type: "system", subtype: "init", session_id: "int-perm" };
+					yield {
+						type: "stream_event",
+						event: { type: "message_start" },
+					};
+					yield {
+						type: "stream_event",
+						event: {
+							type: "content_block_delta",
+							delta: { type: "text_delta", text: "Checking..." },
+						},
+					};
+
+					// Block until permission resolved
+					const result = await permissionHandler(
+						"Bash",
+						{ command: "rm -rf /" },
+						{ toolUseId: "tc-perm", reason: "dangerous" },
+					);
+
+					yield {
+						type: "stream_event",
+						event: {
+							type: "content_block_delta",
+							delta: {
+								type: "text_delta",
+								text: result.behavior === "allow" ? " Allowed." : " Denied.",
+							},
+						},
+					};
+					yield { type: "result", subtype: "success" };
+				})();
+				return {
+					[Symbol.asyncIterator]: () => gen[Symbol.asyncIterator](),
+					interrupt: async () => {},
+					abort: () => {},
+				};
+			},
+		};
+
+		const app = createAgentRouter({ config });
+		const sessionId = await createSession(app, "Do something dangerous");
+
+		// Read the SSE stream incrementally to extract the permission ID
+		const res = await app.request(`/sessions/${sessionId}/events`);
+		const reader = res.body?.getReader();
+		expect(reader).toBeDefined();
+
+		const decoder = new TextDecoder();
+		let accumulated = "";
+		let permId = "";
+
+		// Read chunks until we see a permission_request event
+		while (reader) {
+			const { value, done } = await reader.read();
+			if (done) break;
+			accumulated += decoder.decode(value, { stream: true });
+			const match = accumulated.match(
+				/"type":"permission_request"[^}]*"id":"([^"]+)"/,
+			);
+			if (match?.[1]) {
+				permId = match[1];
+				break;
+			}
+		}
+
+		expect(permId).toBeTruthy();
+
+		// POST respond to allow the permission
+		const respondRes = await app.request(`/sessions/${sessionId}/respond`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				kind: "permission",
+				id: permId,
+				behavior: "allow",
+			}),
+		});
+		expect(respondRes.status).toBe(200);
+
+		// Read the rest of the stream
+		while (reader) {
+			const { value, done } = await reader.read();
+			if (done) break;
+			accumulated += decoder.decode(value, { stream: true });
+		}
+
+		const state = parseSSE(accumulated);
+
+		expect(state.isRunning).toBe(false);
+		expect(accumulated).toContain("Checking...");
+		expect(accumulated).toContain("Allowed.");
+		expect(accumulated).toContain("permission_request");
+		expect(accumulated).toContain("permission_resolved");
 	});
 
 	it("session lifecycle: stream ends with [DONE] and result sets isRunning false", async () => {

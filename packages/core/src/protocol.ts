@@ -62,6 +62,8 @@ export type PermissionRequestEvent = {
 	id: string;
 	toolName: string;
 	input: Record<string, unknown>;
+	toolUseId?: string;
+	reason?: string;
 };
 
 export type PermissionResolvedEvent = {

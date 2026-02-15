@@ -10,14 +10,26 @@ type SDKUserMessage = {
 	session_id: string;
 };
 
-interface QueryInstance {
+export interface QueryInstance {
 	[Symbol.asyncIterator](): AsyncIterator<Record<string, unknown>>;
 	interrupt(): Promise<void>;
 	abort(): void;
 }
 
+export type PermissionHandler = (
+	toolName: string,
+	input: Record<string, unknown>,
+	context: { toolUseId?: string; reason?: string },
+) => Promise<
+	| { behavior: "allow"; updatedInput: Record<string, unknown> }
+	| { behavior: "deny"; message: string }
+>;
+
 export interface SessionConfig {
-	queryFn: (opts: { prompt: AsyncIterable<SDKUserMessage> }) => QueryInstance;
+	queryFn: (opts: {
+		prompt: AsyncIterable<SDKUserMessage>;
+		permissionHandler: PermissionHandler;
+	}) => QueryInstance;
 }
 
 export interface Session {
@@ -55,8 +67,12 @@ export class SessionManager {
 		);
 		let aborted = false;
 
+		const permissionHandler: PermissionHandler = (toolName, input, context) =>
+			permissionGate.request(toolName, input, context);
+
 		const queryInstance = this.config.queryFn({
 			prompt: inputChannel,
+			permissionHandler,
 		});
 
 		// Drive SDK messages → translated events on output channel

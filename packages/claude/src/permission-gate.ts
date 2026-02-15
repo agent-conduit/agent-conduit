@@ -39,6 +39,7 @@ export class PermissionGate {
 	request(
 		toolName: string,
 		input: Record<string, unknown>,
+		context?: { toolUseId?: string; reason?: string },
 	): Promise<PermissionResult> {
 		const id = generateId("perm");
 		const d = deferred<PermissionResult>();
@@ -49,6 +50,10 @@ export class PermissionGate {
 			id,
 			toolName,
 			input,
+			...(context?.toolUseId !== undefined && {
+				toolUseId: context.toolUseId,
+			}),
+			...(context?.reason !== undefined && { reason: context.reason }),
 		});
 
 		return d.promise;

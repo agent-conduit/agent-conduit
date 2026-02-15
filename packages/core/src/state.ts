@@ -13,6 +13,8 @@ export type PendingPermission = {
 	id: string;
 	toolName: string;
 	input: Record<string, unknown>;
+	toolUseId?: string;
+	reason?: string;
 };
 
 export type PendingQuestion = {
@@ -167,6 +169,8 @@ export function reduceEvent(state: AgentState, event: AgentEvent): AgentState {
 				id: event.id,
 				toolName: event.toolName,
 				input: event.input,
+				toolUseId: event.toolUseId,
+				reason: event.reason,
 			});
 			return { ...state, pendingPermissions };
 		}

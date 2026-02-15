@@ -14,7 +14,7 @@ async function collectEvents(
 
 function makeConfig(messages: Record<string, unknown>[]): SessionConfig {
 	return {
-		queryFn: () => {
+		queryFn: (_opts) => {
 			const gen = (async function* () {
 				for (const msg of messages) {
 					yield msg;
@@ -70,7 +70,7 @@ describe("SessionManager", () => {
 	it("supports pushMessage for follow-up turns", async () => {
 		let pushCount = 0;
 		const config: SessionConfig = {
-			queryFn: ({ prompt }) => {
+			queryFn: ({ prompt, permissionHandler: _ph }) => {
 				const gen = (async function* () {
 					// First turn
 					yield {
@@ -128,6 +128,96 @@ describe("SessionManager", () => {
 		).toBe(true);
 	});
 
+	it("wires permissionHandler through PermissionGate", async () => {
+		const config: SessionConfig = {
+			queryFn: ({ permissionHandler }) => {
+				const gen = (async function* () {
+					yield {
+						type: "stream_event",
+						event: { type: "message_start" },
+					};
+					yield {
+						type: "stream_event",
+						event: {
+							type: "content_block_delta",
+							delta: { type: "text_delta", text: "Before permission" },
+						},
+					};
+
+					// Mid-stream permission request — blocks until resolved
+					const result = await permissionHandler(
+						"Bash",
+						{ command: "rm -rf /" },
+						{ toolUseId: "tc-99", reason: "dangerous command" },
+					);
+
+					yield {
+						type: "stream_event",
+						event: {
+							type: "content_block_delta",
+							delta: {
+								type: "text_delta",
+								text: result.behavior === "allow" ? "Allowed!" : "Denied!",
+							},
+						},
+					};
+					yield { type: "result", subtype: "success" };
+				})();
+				return {
+					[Symbol.asyncIterator]: () => gen[Symbol.asyncIterator](),
+					interrupt: async () => {},
+					abort: () => {},
+				};
+			},
+		};
+
+		const manager = new SessionManager(config);
+		const session = manager.create("Hello");
+
+		const events: AgentEvent[] = [];
+		const consuming = (async () => {
+			for await (const event of session.events()) {
+				events.push(event);
+			}
+		})();
+
+		// Wait for the permission request to appear
+		await new Promise((r) => setTimeout(r, 20));
+
+		// Should have: message_start, text_delta("Before permission"), permission_request
+		const permReq = events.find((e) => e.type === "permission_request");
+		expect(permReq).toBeDefined();
+		expect(permReq).toMatchObject({
+			type: "permission_request",
+			toolName: "Bash",
+			input: { command: "rm -rf /" },
+			toolUseId: "tc-99",
+			reason: "dangerous command",
+		});
+
+		// Resolve the permission
+		const permId = (permReq as { id: string }).id;
+		session.permissionGate.resolve(permId, "allow");
+
+		// Wait for stream to finish
+		await consuming;
+
+		// Should see the "Allowed!" text after permission resolved
+		const allowedDelta = events.find(
+			(e) => e.type === "text_delta" && e.text === "Allowed!",
+		);
+		expect(allowedDelta).toBeDefined();
+
+		// Should also see permission_resolved event
+		const permResolved = events.find(
+			(e) => e.type === "permission_resolved" && e.id === permId,
+		);
+		expect(permResolved).toMatchObject({
+			type: "permission_resolved",
+			behavior: "allow",
+		});
+	});
+
 	it("get returns undefined for unknown session", () => {
 		const manager = new SessionManager(makeConfig([]));
 		expect(manager.get("nonexistent")).toBeUndefined();
@@ -142,7 +232,7 @@ describe("SessionManager", () => {
 
 	it("abort stops event iteration", async () => {
 		const config: SessionConfig = {
-			queryFn: () => {
+			queryFn: (_opts) => {
 				const gen = (async function* () {
 					yield {
 						type: "stream_event",

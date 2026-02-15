@@ -111,6 +111,32 @@ describe("PermissionGate", () => {
 			const id2 = (events[1] as { id: string }).id;
 			expect(id1).not.toBe(id2);
 		});
+
+		it("forwards context fields to emitted event", () => {
+			const { gate, events } = setup();
+			gate.request(
+				"Bash",
+				{ command: "rm -rf /" },
+				{
+					toolUseId: "tc-42",
+					reason: "file outside allowed directories",
+				},
+			);
+			expect(events[0]).toMatchObject({
+				type: "permission_request",
+				toolName: "Bash",
+				toolUseId: "tc-42",
+				reason: "file outside allowed directories",
+			});
+		});
+
+		it("omits context fields when not provided", () => {
+			const { gate, events } = setup();
+			gate.request("Bash", { command: "ls" });
+			const event = events[0] as Record<string, unknown>;
+			expect(event).not.toHaveProperty("toolUseId");
+			expect(event).not.toHaveProperty("reason");
+		});
 	});
 
 	describe("questions", () => {
