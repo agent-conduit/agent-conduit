@@ -1,3 +1,8 @@
+export {
+	AgentClient,
+	type AgentClientConfig,
+	type AgentClientSnapshot,
+} from "./client";
 export { type ConvertedMessage, convertMessages } from "./convert";
 export {
 	type AgentEvent,
