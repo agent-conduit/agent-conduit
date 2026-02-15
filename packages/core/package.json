@@ -1,0 +1,35 @@
+{
+	"name": "@agent-conduit/core",
+	"version": "0.0.1",
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src",
+		"format": "biome check --write src",
+		"test": "vitest run",
+		"clean": "rm -rf dist"
+	},
+	"peerDependencies": {
+		"@assistant-ui/react": ">=0.7",
+		"react": ">=18"
+	},
+	"devDependencies": {
+		"@assistant-ui/react": "^0.7.0",
+		"@types/react": "^19.0.0",
+		"react": "^19.0.0",
+		"tsup": "^8.0.0",
+		"typescript": "^5.7.0",
+		"vitest": "^3.0.0"
+	}
+}

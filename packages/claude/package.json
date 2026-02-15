@@ -1,0 +1,36 @@
+{
+	"name": "@agent-conduit/claude",
+	"version": "0.0.1",
+	"type": "module",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsup --watch",
+		"typecheck": "tsc --noEmit",
+		"lint": "biome check src",
+		"format": "biome check --write src",
+		"test": "vitest run",
+		"clean": "rm -rf dist"
+	},
+	"dependencies": {
+		"@agent-conduit/core": "workspace:*",
+		"hono": "^4.0.0"
+	},
+	"peerDependencies": {
+		"@anthropic-ai/claude-agent-sdk": ">=0.1"
+	},
+	"devDependencies": {
+		"@anthropic-ai/claude-agent-sdk": "^0.1.0",
+		"tsup": "^8.0.0",
+		"typescript": "^5.7.0",
+		"vitest": "^3.0.0"
+	}
+}

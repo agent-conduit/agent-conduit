@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.turbo/
+.env
+.env.*
+!.env.example
+.claude/Claude.md

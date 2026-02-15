@@ -1,0 +1,31 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.3.15/schema.json",
+	"files": {
+		"includes": [
+			"packages/*/src/**",
+			"packages/*/tsup.config.ts",
+			"packages/*/package.json",
+			"packages/*/tsconfig.json",
+			"*.json"
+		]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab"
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"recommended": true
+		}
+	},
+	"assist": {
+		"actions": {
+			"source": {
+				"organizeImports": {
+					"level": "on"
+				}
+			}
+		}
+	}
+}

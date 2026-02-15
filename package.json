@@ -1,0 +1,26 @@
+{
+	"name": "agent-conduit",
+	"private": true,
+	"packageManager": "pnpm@10.22.0",
+	"engines": {
+		"node": ">=24"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild"
+		]
+	},
+	"scripts": {
+		"build": "turbo build",
+		"dev": "turbo dev",
+		"lint": "turbo lint",
+		"format": "turbo format",
+		"typecheck": "turbo typecheck",
+		"test": "turbo test",
+		"clean": "turbo clean"
+	},
+	"devDependencies": {
+		"turbo": "^2.4.0",
+		"@biomejs/biome": "^2.0.0"
+	}
+}
