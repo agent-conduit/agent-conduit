@@ -1,1 +1,20 @@
-export {};
+export {
+	type AgentEvent,
+	decodeEvent,
+	type ErrorEvent,
+	encodeDone,
+	encodeEvent,
+	type MessageStartEvent,
+	type PermissionRequestEvent,
+	type PermissionResolvedEvent,
+	type ResultEvent,
+	type SessionInitEvent,
+	type TextDeltaEvent,
+	type ThinkingDeltaEvent,
+	type ToolCallEvent,
+	type ToolInputDeltaEvent,
+	type ToolResultEvent,
+	type ToolStartEvent,
+	type UserQuestionAnsweredEvent,
+	type UserQuestionEvent,
+} from "./protocol";
