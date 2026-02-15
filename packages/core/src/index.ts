@@ -1,3 +1,4 @@
+export { type ConvertedMessage, convertMessages } from "./convert";
 export {
 	type AgentEvent,
 	decodeEvent,
